@@ -1,0 +1,6 @@
+{
+  "name": "EOS Live Price",
+  "description": "EOS live price from CoinMarketCap, Bitfinex, and OTCBTC",
+  "uuid": "eos-live-price@bianjp.com",
+  "shell-version": ["3.26"]
+}
