@@ -27,6 +27,7 @@ class PriceLoader:
 
     @staticmethod
     # https://coinmarketcap.com/api/
+    # 请求频率限制：10/min
     def coinmarketcap() -> Optional[float]:
         start_time = time.time()
         # noinspection PyBroadException
@@ -89,6 +90,7 @@ class PriceLoader:
 
     @staticmethod
     # https://docs.bitfinex.com/v1/reference#rest-public-ticker
+    # 请求频率限制：30/min
     def bitfinex() -> Optional[float]:
         start_time = time.time()
         # noinspection PyBroadException

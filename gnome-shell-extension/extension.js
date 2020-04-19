@@ -7,34 +7,44 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Notification = Me.imports.notification;
 
 const price_file = '/tmp/eos-price.csv';
+const concerned_prices_file = '/tmp/eos-concerned-prices';
 
 let price_label;
 let stop = false;
 let last_update_time = null;
+// 价格超出此区间时发出提示
+let concerned_prices = [50, 100];
+
+function update_concerned_prices(){
+  let content = get_file_content(concerned_prices_file);
+  if (content) {
+    let prices = content.trim().split('\n')[0].trim().split(' ');
+    concerned_prices[0] = parseFloat(prices[0]);
+    concerned_prices[1] = parseFloat(prices[1]);
+  }
+}
 
 // 根据价格变化趋势或当前价格做出适当提示
 function show_prompt(avg_prices, otcbtc_prices) {
-  let min_price = 75;
-  let max_price = 100;
   if (otcbtc_prices && otcbtc_prices.length) {
     let price = otcbtc_prices[otcbtc_prices.length - 1];
-    if (price < min_price) {
-      Notification.show('EOS 价格突破 ' + min_price);
+    if (price < concerned_prices[0]) {
+      Notification.show('EOS 价格突破 ' + concerned_prices[0]);
       return;
-    } else if (price > max_price) {
-      Notification.show('EOS 价格突破 ' + max_price);
+    } else if (price > concerned_prices[1]) {
+      Notification.show('EOS 价格突破 ' + concerned_prices[1]);
       return;
     }
   }
 
-  if (avg_prices && avg_prices.length >= 3) {
-    avg_prices.reverse();
-    if (avg_prices[0] > avg_prices[1] && avg_prices[1] > avg_prices[2] && avg_prices[0] - avg_prices[2] > 0.3) {
-      Notification.show('EOS 涨价中');
-    } else if (avg_prices[0] < avg_prices[1] && avg_prices[1] < avg_prices[2] && avg_prices[2] - avg_prices[0] > 0.3) {
-      Notification.show('EOS 降价中');
-    }
-  }
+  // if (avg_prices && avg_prices.length >= 3) {
+  //   avg_prices.reverse();
+  //   if (avg_prices[0] > avg_prices[1] && avg_prices[1] > avg_prices[2] && avg_prices[0] - avg_prices[2] > 0.3) {
+  //     Notification.show('EOS 涨价中');
+  //   } else if (avg_prices[0] < avg_prices[1] && avg_prices[1] < avg_prices[2] && avg_prices[2] - avg_prices[0] > 0.3) {
+  //     Notification.show('EOS 降价中');
+  //   }
+  // }
 }
 
 function prices_to_text(prices) {
@@ -52,9 +62,9 @@ function prices_to_text(prices) {
   return text;
 }
 
-function read_price_file() {
+function get_file_content(filename) {
   try {
-    let [ok, content] = GLib.file_get_contents(price_file);
+    let [ok, content] = GLib.file_get_contents(filename);
     if (ok){
       return content.toString();
     } else {
@@ -66,7 +76,7 @@ function read_price_file() {
 }
 
 function load_prices() {
-  let content = read_price_file();
+  let content = get_file_content(price_file);
   if (!content){
     return;
   }
@@ -121,11 +131,19 @@ function init() {
 
 function enable() {
   Main.uiGroup.add_actor(price_label);
+
   stop = false;
   last_update_time = null;
   load_prices();
+  update_concerned_prices();
+
   Mainloop.timeout_add(10000, function() {
     load_prices();
+    return !stop;
+  });
+
+  Mainloop.timeout_add(60000, function() {
+    update_concerned_prices();
     return !stop;
   });
 }
